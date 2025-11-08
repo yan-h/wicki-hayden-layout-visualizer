@@ -39,7 +39,7 @@
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const cssWidth = 601;
-    const cssHeight = 501;
+    const cssHeight = 451;
  
     const offset = 0.5 // accounts for the fact that 1px stroke is drawn centered on the pixel
  
@@ -48,8 +48,8 @@
     const bottomPadding = cellSize;
     const leftPadding = cellSize * 3;
  
-    const pivotX = leftPadding + offset; // X position of bottom-left corner
-    const pivotY = cssHeight - bottomPadding - offset; // Y position of bottom-left corner
+    const pivotX = leftPadding + offset - cellSize / 2; // X position of bottom-left corner
+    const pivotY = cssHeight - bottomPadding - offset - cellSize / 2; // Y position of bottom-left corner
  
     const rows = 6;
     const cols = 9;
@@ -134,8 +134,8 @@
         for (let col = 0; col < cols; col++) {
           // cumulative shift: bottom row (row=0) shift=0, row=1 shift=skew*cellSize, etc.
           const rowShift = skew * row * cellSize;
-          const x = col * cellSize + rowShift;
-          const y = -row * cellSize; // negative because canvas y-axis goes down
+          const x = col * cellSize + rowShift - cellSize / 2;
+          const y = -row * cellSize + cellSize / 2; // negative because canvas y-axis goes down
 
 
           // Draw cell
@@ -173,11 +173,11 @@
           const rowShift = skew * row * cellSize;
 
           const pitch = col * majorSecondSize + row * perfectFourthSize;
-          const localX = col * cellSize + rowShift + cellSize / 2; // center of cell in local coords
-          const localY = -row * cellSize - cellSize / 2;           // center of cell in local coords
+          const localX = col * cellSize + rowShift; // center of cell in local coords
+          const localY = -row * cellSize;           // center of cell in local coords
           // transform local (rotated) point into canvas coordinates
-          const worldX = pivotX + localX * ca - localY * sa;
-          const worldY = pivotY + localX * sa + localY * ca;
+          const worldX = pivotX  + localX * ca - localY * sa;
+          const worldY = pivotY  + localX * sa + localY * ca;
 
           // Draw pitch value
           ctx.fillText(parseFloat(pitch).toFixed(2), worldX, worldY);
