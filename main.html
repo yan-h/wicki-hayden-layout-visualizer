@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Rotate Square from Bottom-Left Corner</title>
+  <title>Wicki-Hayden Layout Optimizer</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -19,18 +19,22 @@
   <!-- Slider for rotation angle -->
   <div class="control-row">
     <label for="angleSlider" style="margin-right:8px; font-weight:600;">Angle</label>
-    <input type="range" id="angleSlider" min="-45" max="0" step="0.01" value="0.00">
-    <!-- numeric input for fractional angles (two decimals) -->
-    <input type="number" id="angleInput" min="-45" max="0" step="0.01" value="0.00" style="width:90px">
+    <input type="range" id="angleSlider" min="-45" max="0" step = "0.00000001" value="0.00">
+    <input type="text" id="angleInput" value="0.00" style="width:90px">
+    <label style="margin-left:12px;">
+      <input type="radio" name="constrain" value="angle" id="angleConstrain"> Constrain
+    </label>
   </div>
 
   <div class="control-row" style="margin-top:8px;">
-    <!-- Skew controls on their own line -->
     <label for="skewSlider" style="margin-right:8px; font-weight:600;">Skew</label>
-    <input type="range" id="skewSlider" min="-0.5" max="0.5" step="0.01" value="0.00" style="width:140px">
-    <input type="number" id="skewInput" min="-0.5" max="0.5" step="0.01" value="0.00" style="width:70px; margin-left:6px">
+    <input type="range" id="skewSlider" min="-0.5" max="0.5" step="0.00000001" value="0.0" style="width:140px">
+    <input type="text" id="skewInput" value="0.0" style="width:70px; margin-left:6px">
+    <label style="margin-left:12px;">
+      <input type="radio" name="constrain" value="skew" id="skewConstrain"> Constrain
+    </label>
   </div>
- 
+
   <br>
   <canvas id="myCanvas" width="300" height="300"></canvas>
  
@@ -53,13 +57,86 @@
  
     const rows = 6;
     const cols = 9;
+
+    const decimalPlaces = 8
  
     // Wire up DOM elements
-    const slider = document.getElementById('angleSlider');
+    const angleSlider = document.getElementById('angleSlider');
     const angleInput = document.getElementById('angleInput');
     const skewSlider = document.getElementById('skewSlider');
     const skewInput = document.getElementById('skewInput');
- 
+    const angleConstrain = document.getElementById('angleConstrain');
+    const skewConstrain = document.getElementById('skewConstrain');
+
+    // Function to update constrained values
+    function updateConstrainedValues() {
+      console.log("Cos: "+ Math.cos((-angleInput.value) * Math.PI / 180));
+      console.log("Sin: "+ Math.sin((-angleInput.value) * Math.PI / 180));
+
+      // Solve for the following equation. Wolfram alpha works.
+      // cos(theta) * (1 - 2 * skew) + 2 * sin(theta) = 0
+      // i.e. vertical and horizontal offset due to rotation + skew cancel out, making octaves vertical
+      if (angleConstrain.checked) {
+        // need to multiply by -1, idk why
+        const skewVal = -parseFloat(skewInput.value);
+        const newAngleVal = -(180 - 2 * 180 / Math.PI * (Math.atan((Math.sqrt(4 * skewVal * skewVal - 4 * skewVal + 5) + 2)/(1 - 2 * skewVal))))
+        angleSlider.value = newAngleVal.toString();
+        angleInput.value = newAngleVal.toFixed(decimalPlaces);
+
+        drawAll(parseFloat(angleInput.value));
+      } else if (skewConstrain.checked) {
+        const angleVal = parseFloat(angleInput.value);
+        const newSkewVal = -Math.tan(angleVal * Math.PI / 180) - 0.5;
+        skewSlider.value = newSkewVal.toString();
+        skewInput.value = newSkewVal.toFixed(decimalPlaces);
+        drawAll(parseFloat(angleInput.value));
+      } else {
+        // No constraints, just draw
+        drawAll(parseFloat(angleInput.value));
+      }
+    }
+
+    // Set up radio button event listeners
+    angleConstrain.addEventListener('change', function() {
+      if (this.checked) {
+        // When angle is constrained, disable angle controls and enable skew controls
+        angleSlider.disabled = true;
+        angleInput.disabled = true;
+        skewSlider.disabled = false;
+        skewInput.disabled = false;
+        updateConstrainedValues(); // Set initial mirrored value
+        optimizeBtn.disabled = false;
+      }
+    });
+
+    skewConstrain.addEventListener('change', function() {
+      if (this.checked) {
+        // When skew is constrained, disable skew controls and enable angle controls
+        skewSlider.disabled = true;
+        skewInput.disabled = true;
+        angleSlider.disabled = false;
+        angleInput.disabled = false;
+        optimizeBtn.disabled = false;
+        updateConstrainedValues(); // Set initial mirrored value
+      }
+    });
+
+    // Function to enable all controls (called when radio is unchecked)
+    function enableAllControls() {
+      angleSlider.disabled = false;
+      angleInput.disabled = false;
+      skewSlider.disabled = false;
+      skewInput.disabled = false;
+    }
+
+    // Add event listener for when radio buttons are unchecked
+    document.getElementsByName('constrain').forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (!this.checked) {
+          enableAllControls();
+        }
+      });
+    });
     // High-DPI (Retina) scaling so 1px strokes match the 1px CSS border
     canvas.style.width = cssWidth + 'px';
     canvas.style.height = cssHeight + 'px';
@@ -166,6 +243,8 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
+      const textOffset = 0.12 * cellSize;
+
       baseHeight = 0;
       octaveHeight = 0;
       for (let row = 0; row < rows; row++) {
@@ -179,8 +258,9 @@
           const worldX = pivotX  + localX * ca - localY * sa;
           const worldY = pivotY  + localX * sa + localY * ca;
 
+          
           // Draw pitch value
-          ctx.fillText(parseFloat(pitch).toFixed(2), worldX, worldY);
+         // ctx.fillText(parseFloat(pitch).toFixed(2), worldX , worldY - textOffset);
 
           // height of midpoint of cell, relative to center of origin cell
           const height = (-sa * localX - localY * ca) - (25 * sa - 25 * ca);
@@ -192,61 +272,58 @@
 
           displayHeight = ((height - baseHeight) / octaveHeight);
           // Draw height value below the pitch
-          ctx.fillText(`${displayHeight.toFixed(2)}`, worldX, worldY + fontSize); // offset by fontSize for spacing
+          ctx.fillText(`${displayHeight.toFixed(3)}`, worldX, worldY - textOffset + fontSize); // offset by fontSize for spacing
         }
       }
     }
  
     // Update rotation when slider moves (supports fractional angles)
-    slider.addEventListener('input', () => {
-      const angle = parseFloat(slider.value);
-      if (angleInput) angleInput.value = angle.toFixed(2);
-      drawAll(angle);
+    angleSlider.addEventListener('input', () => {
+      const angle = parseFloat(angleSlider.value);
+      if (angleInput) angleInput.value = angle.toFixed(decimalPlaces);
+      updateConstrainedValues();
     });
     // Skew slider -> numeric input
-    if (skewSlider && skewInput) {
-      skewSlider.addEventListener('input', () => {
-        const s = parseFloat(skewSlider.value);
-        skewInput.value = s.toFixed(2);
-        drawAll(parseFloat(slider.value));
-      });
-      // numeric input -> slider
-      skewInput.addEventListener('input', () => {
+    skewSlider.addEventListener('input', () => {
+      const s = parseFloat(skewSlider.value);
+      skewInput.value = s.toFixed(decimalPlaces);
+      updateConstrainedValues();
+    });
+    // numeric input -> slider
+    skewInput.addEventListener('keyup', function (e) {
+      if (e.key === 'Enter') {
         const v = parseFloat(skewInput.value);
         if (!Number.isNaN(v)) {
           const clamped = Math.max(parseFloat(skewSlider.min), Math.min(parseFloat(skewSlider.max), v));
           skewSlider.value = clamped;
-          skewInput.value = clamped.toFixed(2);
-          drawAll(parseFloat(slider.value));
+          skewInput.value = clamped.toFixed(decimalPlaces);
         }
-      });
-    }
+          updateConstrainedValues();
+      } 
+    });
+    
   
-     // Update slider when numeric input changes (typed by user)
-     if (angleInput) {
-       angleInput.addEventListener('input', () => {
-         // allow partial/fractional typing, coerce to number for drawing
-         const v = angleInput.value;
-         const n = parseFloat(v);
-         if (!Number.isNaN(n)) {
-           const clamped = Math.max(-45, Math.min(0, n));
-           slider.value = clamped;
-           if (angleInput) angleInput.value = clamped.toFixed(2);
-           drawAll(clamped);
-         } else {
-           // if text is empty/invalid, don't draw
-         }
-       });
-     }
+    // Update slider when numeric input changes (typed by user)
+    angleInput.addEventListener('keyup', function (e) {
+      if (e.key == 'Enter') {
+        // allow partial/fractional typing, coerce to number for drawing
+        const v = angleInput.value;
+        const n = parseFloat(v);
+        if (!Number.isNaN(n)) {
+          const clamped = Math.max(-45, Math.min(0, n));
+          angleSlider.value = clamped;
+          if (angleInput) angleInput.value = clamped.toFixed(decimalPlaces);
+        }
+        updateConstrainedValues();
+      }
+    });
  
      // Initial draw (ensure inputs are synced and show one fractional digit)
-     const initial = parseFloat(slider.value) || 0;
-     if (angleInput) angleInput.value = initial.toFixed(2);
-     if (skewInput && skewSlider) {
-       const initialSkew = parseFloat(skewSlider.value) || 0;
-       skewInput.value = initialSkew.toFixed(2);
-     }
+     const initial = parseFloat(angleSlider.value) || 0;
+     angleInput.value = (0).toFixed(decimalPlaces);
+     skewInput.value = (0).toFixed(decimalPlaces);
      drawAll(initial);
+     fifthCents.value = (700).toFixed(decimalPlaces);
    </script>
  </body>
  </html>
