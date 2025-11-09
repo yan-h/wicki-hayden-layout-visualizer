@@ -2,16 +2,7 @@
 <html>
 <head>
   <title>Wicki-Hayden Layout Visualizer</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 40px;
-    }
-    canvas {
-      margin-top: 10px;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <h2>Wicki-Hayden Layout Visualizer</h2>
@@ -32,6 +23,15 @@
     <input type="text" id="skewInput" value="0.0" style="width:70px; margin-left:6px">
     <label style="margin-left:12px;">
       <input type="radio" name="constrain" value="skew" id="skewConstrain"> Constrain
+    </label>
+  </div>
+
+  <br>
+  <canvas id="myCanvas" width="300" height="300"></canvas>
+  
+  <script src="script.js"></script>
+</body>
+</html>
     </label>
   </div>
 
